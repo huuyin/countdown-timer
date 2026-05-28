@@ -3,58 +3,225 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Countdown Timer</title>
+  <title>Pomodoro Timer</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background: #0f0f0f;
       color: #fff;
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
       min-height: 100vh;
+      padding: 0 1rem 2rem;
     }
 
-    .app {
-      text-align: center;
+    /* ── Top bar ── */
+    .topbar {
       width: 100%;
-      max-width: 480px;
-      padding: 2rem;
+      max-width: 900px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 0 0.75rem;
+      border-bottom: 1px solid #1a1a1a;
+      margin-bottom: 0;
+      gap: 1rem;
     }
 
-    h1 {
-      font-size: 1.1rem;
-      font-weight: 400;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: #666;
-      margin-bottom: 2.5rem;
+    .tz-selector {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
+
+    .tz-icon { font-size: 0.78rem; color: #444; }
+
+    .tz-dropdown { position: relative; }
+
+    #tz-search {
+      width: 240px;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 7px;
+      color: #888;
+      font-size: 0.75rem;
+      padding: 0.32rem 0.65rem;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    #tz-search:focus { border-color: #3b82f6; color: #ccc; cursor: text; }
+    #tz-search::placeholder { color: #444; }
+
+    .tz-options {
+      position: absolute;
+      top: calc(100% + 5px);
+      left: 0;
+      width: 300px;
+      max-height: 220px;
+      overflow-y: auto;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      z-index: 200;
+      display: none;
+    }
+
+    .tz-options.open { display: block; }
+
+    .tz-options::-webkit-scrollbar { width: 4px; }
+    .tz-options::-webkit-scrollbar-track { background: transparent; }
+    .tz-options::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
+
+    .tz-option {
+      padding: 0.42rem 0.75rem;
+      font-size: 0.74rem;
+      color: #666;
+      cursor: pointer;
+      transition: background 0.1s, color 0.1s;
+    }
+
+    .tz-option:hover, .tz-option.highlighted { background: #27272a; color: #ccc; }
+    .tz-option.selected { color: #3b82f6; }
+
+    .tz-no-results {
+      padding: 0.75rem;
+      font-size: 0.74rem;
+      color: #333;
+      text-align: center;
+    }
+
+    .datetime-display {
+      display: flex;
+      align-items: baseline;
+      gap: 0.75rem;
+      text-align: right;
+    }
+
+    #current-date {
+      font-size: 0.75rem;
+      color: #444;
+      letter-spacing: 0.05em;
+    }
+
+    #current-time {
+      font-size: 0.95rem;
+      font-weight: 300;
+      color: #666;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Main content wrapper (vertically centered in remaining space) ── */
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      gap: 2rem;
+      padding: 2rem 0;
+    }
+
+    /* ── Two-panel layout ── */
+    .layout {
+      display: flex;
+      gap: 2rem;
+      width: 100%;
+      max-width: 900px;
+      align-items: flex-start;
+    }
+
+    /* ── Timer Panel ── */
+    .timer-panel {
+      flex: 0 0 420px;
+      min-width: 0;
+      text-align: center;
+    }
+
+    .panel-title {
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #555;
+      margin-bottom: 1.5rem;
+    }
+
+    .mode-tabs {
+      display: flex;
+      gap: 0.4rem;
+      margin-bottom: 1.75rem;
+      background: #1a1a1a;
+      border-radius: 10px;
+      padding: 4px;
+    }
+
+    .mode-tab {
+      flex: 1;
+      padding: 0.45rem 0;
+      border: none;
+      border-radius: 7px;
+      background: transparent;
+      color: #666;
+      font-size: 0.78rem;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .mode-tab:active { transform: none; }
+    .mode-tab.active { background: #27272a; color: #fff; }
+    .mode-tab[data-mode="focus"].active { color: #3b82f6; }
+    .mode-tab[data-mode="short"].active { color: #22c55e; }
+    .mode-tab[data-mode="long"].active  { color: #a855f7; }
+    .mode-tab.break-locked { opacity: 0.28; cursor: not-allowed; }
+
+    .session-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .session-label {
+      font-size: 0.72rem;
+      color: #444;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .session-dots { display: flex; gap: 5px; }
+
+    .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #2a2a2a;
+      transition: background 0.2s;
+    }
+
+    .dot.filled { background: #3b82f6; }
 
     .display {
-      font-size: 6rem;
+      font-size: 5.5rem;
       font-weight: 200;
       letter-spacing: 0.05em;
       font-variant-numeric: tabular-nums;
       color: #fff;
+      text-align: center;
       margin-bottom: 0.5rem;
       transition: color 0.3s;
     }
 
-    .display.warning {
-      color: #f59e0b;
-    }
-
-    .display.danger {
-      color: #ef4444;
-    }
-
+    .display.warning { color: #f59e0b; }
+    .display.danger  { color: #ef4444; }
     .display.finished {
       color: #ef4444;
       animation: pulse 0.8s ease-in-out infinite;
@@ -62,21 +229,17 @@
 
     @keyframes pulse {
       0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
+      50%       { opacity: 0.4; }
     }
 
     .progress-bar {
-      width: 100%;
-      height: 3px;
-      background: #222;
-      border-radius: 2px;
-      margin-bottom: 2.5rem;
-      overflow: hidden;
+      width: 100%; height: 3px;
+      background: #222; border-radius: 2px;
+      margin-bottom: 2rem; overflow: hidden;
     }
 
     .progress-fill {
-      height: 100%;
-      background: #3b82f6;
+      height: 100%; background: #3b82f6;
       border-radius: 2px;
       transition: width 1s linear, background 0.3s;
       width: 100%;
@@ -89,7 +252,7 @@
       display: flex;
       justify-content: center;
       gap: 1rem;
-      margin-bottom: 2rem;
+      margin-bottom: 1.75rem;
     }
 
     .time-field {
@@ -100,153 +263,799 @@
     }
 
     .time-field label {
-      font-size: 0.7rem;
+      font-size: 0.68rem;
       letter-spacing: 0.12em;
       text-transform: uppercase;
       color: #555;
     }
 
     .time-field input {
-      width: 72px;
+      width: 68px;
       background: #1a1a1a;
       border: 1px solid #2a2a2a;
       border-radius: 8px;
       color: #fff;
-      font-size: 1.5rem;
+      font-size: 1.4rem;
       font-weight: 300;
       text-align: center;
-      padding: 0.5rem 0;
+      padding: 0.45rem 0;
       outline: none;
       transition: border-color 0.2s;
       -moz-appearance: textfield;
     }
 
     .time-field input::-webkit-outer-spin-button,
-    .time-field input::-webkit-inner-spin-button {
-      -webkit-appearance: none;
-    }
+    .time-field input::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .time-field input:focus { border-color: #3b82f6; }
+    .time-field input:disabled { color: #444; }
 
-    .time-field input:focus {
-      border-color: #3b82f6;
-    }
-
-    .colon {
-      font-size: 1.5rem;
-      color: #444;
-      padding-top: 1.4rem;
-    }
+    .colon { font-size: 1.4rem; color: #444; padding-top: 1.4rem; }
 
     .buttons {
       display: flex;
       justify-content: center;
-      gap: 0.75rem;
+      gap: 0.6rem;
+      margin-bottom: 1rem;
     }
 
     button {
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.85rem;
-      font-weight: 500;
-      letter-spacing: 0.05em;
-      padding: 0.65rem 1.6rem;
+      border: none; border-radius: 8px; cursor: pointer;
+      font-size: 0.82rem; font-weight: 500; letter-spacing: 0.05em;
+      padding: 0.6rem 1.5rem;
       transition: background 0.15s, transform 0.1s;
     }
 
     button:active { transform: scale(0.97); }
 
-    #btn-start {
-      background: #3b82f6;
-      color: #fff;
-    }
-
+    #btn-start { background: #3b82f6; color: #fff; }
     #btn-start:hover { background: #2563eb; }
 
-    #btn-pause {
-      background: #27272a;
-      color: #a1a1aa;
-    }
-
+    #btn-pause { background: #27272a; color: #a1a1aa; }
     #btn-pause:hover { background: #3f3f46; }
 
-    #btn-reset {
-      background: #1a1a1a;
-      color: #666;
-      border: 1px solid #2a2a2a;
-    }
+    #btn-stop { background: #3f1a1a; color: #ef4444; border: 1px solid #5a2020; }
+    #btn-stop:hover { background: #5a2020; }
 
+    #btn-reset { background: #1a1a1a; color: #666; border: 1px solid #2a2a2a; }
     #btn-reset:hover { background: #27272a; }
 
-    button:disabled {
-      opacity: 0.35;
-      cursor: not-allowed;
-    }
+    button:disabled { opacity: 0.35; cursor: not-allowed; }
 
     .message {
-      margin-top: 1.5rem;
-      font-size: 0.85rem;
+      text-align: center;
+      font-size: 0.82rem;
       color: #ef4444;
       letter-spacing: 0.1em;
       text-transform: uppercase;
       min-height: 1.2em;
     }
+
+    /* ── Todo Panel ── */
+    .todo-panel { flex: 1; min-width: 0; }
+
+    .todo-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+    }
+
+    .todo-count { font-size: 0.72rem; color: #444; letter-spacing: 0.08em; }
+
+    .todo-input-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .todo-input {
+      flex: 1;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 0.88rem;
+      padding: 0.6rem 0.85rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .todo-input::placeholder { color: #444; }
+    .todo-input:focus { border-color: #3b82f6; }
+
+    #btn-add-todo {
+      background: #3b82f6; color: #fff;
+      padding: 0.6rem 1rem;
+      border-radius: 8px;
+      font-size: 1rem; line-height: 1;
+    }
+    #btn-add-todo:hover { background: #2563eb; }
+
+    .todo-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-height: 240px;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    .todo-list::-webkit-scrollbar { width: 4px; }
+    .todo-list::-webkit-scrollbar-track { background: transparent; }
+    .todo-list::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
+
+    .todo-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: #1a1a1a;
+      border: 1px solid #222;
+      border-radius: 8px;
+      padding: 0.65rem 0.85rem;
+      transition: border-color 0.2s;
+      animation: slide-in 0.15s ease;
+    }
+
+    @keyframes slide-in {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .todo-item.done { border-color: #1e3a1e; }
+
+    .todo-checkbox {
+      appearance: none; -webkit-appearance: none;
+      width: 17px; height: 17px;
+      border: 1.5px solid #3a3a3a;
+      border-radius: 4px; cursor: pointer;
+      flex-shrink: 0; position: relative;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .todo-checkbox:checked { background: #22c55e; border-color: #22c55e; }
+
+    .todo-checkbox:checked::after {
+      content: '';
+      position: absolute;
+      left: 4px; top: 1px;
+      width: 5px; height: 9px;
+      border: 2px solid #fff;
+      border-left: none; border-top: none;
+      transform: rotate(45deg);
+    }
+
+    .todo-text { flex: 1; font-size: 0.88rem; color: #ccc; word-break: break-word; transition: color 0.2s; }
+    .todo-item.done .todo-text { color: #444; text-decoration: line-through; }
+
+    .todo-delete {
+      background: transparent; border: none;
+      color: #333; font-size: 1rem; cursor: pointer;
+      padding: 0 0.1rem; line-height: 1; flex-shrink: 0;
+      transition: color 0.15s;
+    }
+    .todo-delete:hover { color: #ef4444; }
+    .todo-delete:active { transform: none; }
+
+    .todo-empty {
+      text-align: center; color: #333;
+      font-size: 0.82rem; padding: 1.5rem 0;
+      letter-spacing: 0.05em;
+    }
+
+    .todo-actions {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 0.75rem;
+    }
+
+    .todo-actions button {
+      background: transparent; border: none;
+      color: #444; font-size: 0.75rem;
+      padding: 0.2rem 0; cursor: pointer;
+      letter-spacing: 0.05em;
+    }
+
+    .todo-actions button:hover { color: #888; }
+    .todo-actions button:active { transform: none; }
+    #btn-clear-all:hover { color: #ef4444 !important; }
+
+    /* ── Session Log ── */
+    .log-section {
+      width: 100%;
+      max-width: 900px;
+      border-top: 1px solid #1e1e1e;
+      padding-top: 1.25rem;
+    }
+
+    .log-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .log-title {
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #444;
+    }
+
+    #btn-clear-log {
+      background: transparent; border: none;
+      color: #333; font-size: 0.72rem;
+      padding: 0; cursor: pointer; letter-spacing: 0.05em;
+    }
+    #btn-clear-log:hover { color: #ef4444; }
+    #btn-clear-log:active { transform: none; }
+
+    /* Vertical log list */
+    .log-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      max-height: 320px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .log-list::-webkit-scrollbar { width: 4px; }
+    .log-list::-webkit-scrollbar-track { background: transparent; }
+    .log-list::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
+
+    .log-entry {
+      background: #141414;
+      border: 1px solid #1e1e1e;
+      border-radius: 8px;
+      padding: 0.65rem 0.85rem;
+      animation: slide-in 0.15s ease;
+    }
+
+    .log-entry-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.3rem;
+    }
+
+    .log-entry-title {
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: #888;
+    }
+
+    .log-entry-title .log-badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      padding: 0.1rem 0.45rem;
+      border-radius: 20px;
+      margin-left: 0.4rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .log-badge.focus   { background: #1a2a3a; color: #3b82f6; }
+    .log-badge.short   { background: #1a2e1a; color: #22c55e; }
+    .log-badge.long    { background: #261a36; color: #a855f7; }
+    .log-badge.stopped { background: #2a1a0a; color: #f59e0b; }
+
+    .log-entry-time { font-size: 0.7rem; color: #333; }
+
+    .log-elapsed { font-size: 0.7rem; color: #3a3a3a; margin-bottom: 0.4rem; }
+
+    /* Event list */
+    .log-event-list { list-style: none; display: flex; flex-direction: column; gap: 0.3rem; }
+
+    .log-event-item {
+      font-size: 0.76rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .log-event-icon {
+      font-size: 0.68rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      width: 12px;
+      text-align: center;
+    }
+
+    .log-event-item.ev-added     .log-event-icon { color: #3b82f6; }
+    .log-event-item.ev-completed .log-event-icon { color: #22c55e; }
+    .log-event-item.ev-removed   .log-event-icon { color: #ef4444; }
+    .log-event-item.ev-cleared   .log-event-icon { color: #555; }
+    .log-event-item.ev-paused    .log-event-icon { color: #f59e0b; }
+    .log-event-item.ev-resumed   .log-event-icon { color: #60a5fa; }
+
+    .log-event-item.ev-added     .log-event-name { color: #666; }
+    .log-event-item.ev-completed .log-event-name { color: #555; }
+    .log-event-item.ev-removed   .log-event-name { color: #444; text-decoration: line-through; }
+    .log-event-item.ev-cleared   .log-event-name { color: #3a3a3a; font-style: italic; }
+    .log-event-item.ev-paused    .log-event-name { color: #666; }
+    .log-event-item.ev-resumed   .log-event-name { color: #555; }
+
+    .log-event-name { flex: 1; }
+
+    .log-event-time {
+      font-size: 0.68rem;
+      color: #2e2e2e;
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .log-no-activity { font-size: 0.75rem; color: #2e2e2e; font-style: italic; }
+
+    .log-break-section {
+      margin-top: 0.65rem;
+      padding-top: 0.65rem;
+      border-top: 1px solid #1e1e1e;
+    }
+
+    .log-break-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.3rem;
+    }
+
+    .todo-mode-label {
+      font-size: 0.68rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-top: 0.1rem;
+    }
+
+    .todo-mode-label.mode-focus { color: #1d3a5c; }
+    .todo-mode-label.mode-short { color: #1a2e1a; }
+    .todo-mode-label.mode-long  { color: #221530; }
+
+    .log-empty {
+      text-align: center; color: #2a2a2a;
+      font-size: 0.78rem; padding: 1rem 0;
+      letter-spacing: 0.05em;
+    }
+
+    /* Responsive */
+    @media (max-width: 700px) {
+      .layout { flex-direction: column; max-width: 420px; }
+      .timer-panel { flex: none; width: 100%; }
+      .topbar { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+      .datetime-display { align-self: flex-end; }
+    }
   </style>
 </head>
 <body>
-  <div class="app">
-    <h1>Countdown Timer</h1>
 
-    <div class="display" id="display">00:00:00</div>
-
-    <div class="progress-bar">
-      <div class="progress-fill" id="progress"></div>
-    </div>
-
-    <div class="input-row">
-      <div class="time-field">
-        <label>Hours</label>
-        <input type="number" id="input-h" min="0" max="99" value="0" placeholder="00">
-      </div>
-      <div class="colon">:</div>
-      <div class="time-field">
-        <label>Minutes</label>
-        <input type="number" id="input-m" min="0" max="59" value="5" placeholder="00">
-      </div>
-      <div class="colon">:</div>
-      <div class="time-field">
-        <label>Seconds</label>
-        <input type="number" id="input-s" min="0" max="59" value="0" placeholder="00">
+  <!-- Top bar: timezone selector + live date/time -->
+  <div class="topbar">
+    <div class="tz-selector">
+      <span class="tz-icon">◎</span>
+      <div class="tz-dropdown" id="tz-dropdown">
+        <input type="text" id="tz-search" placeholder="Search city or timezone…" autocomplete="off" spellcheck="false">
+        <div class="tz-options" id="tz-options"></div>
       </div>
     </div>
-
-    <div class="buttons">
-      <button id="btn-start">Start</button>
-      <button id="btn-pause" disabled>Pause</button>
-      <button id="btn-reset">Reset</button>
+    <div class="datetime-display">
+      <span id="current-date"></span>
+      <span id="current-time"></span>
     </div>
-
-    <div class="message" id="message"></div>
   </div>
 
+  <div class="main-content">
+
+    <!-- Two-panel layout -->
+    <div class="layout">
+
+      <!-- Timer Panel -->
+      <div class="timer-panel">
+        <p class="panel-title">Pomodoro Timer</p>
+
+        <div class="mode-tabs">
+          <button class="mode-tab active" data-mode="focus">Focus</button>
+          <button class="mode-tab" data-mode="short">Short Break</button>
+          <button class="mode-tab" data-mode="long">Long Break</button>
+        </div>
+
+        <div class="session-row">
+          <span class="session-label">Session</span>
+          <div class="session-dots" id="session-dots">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+          </div>
+        </div>
+
+        <div class="display" id="display">00:00:00</div>
+
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress"></div>
+        </div>
+
+        <div class="input-row">
+          <div class="time-field">
+            <label>Hours</label>
+            <input type="number" id="input-h" min="0" max="99" value="0">
+          </div>
+          <div class="colon">:</div>
+          <div class="time-field">
+            <label>Minutes</label>
+            <input type="number" id="input-m" min="0" max="59" value="25">
+          </div>
+          <div class="colon">:</div>
+          <div class="time-field">
+            <label>Seconds</label>
+            <input type="number" id="input-s" min="0" max="59" value="0">
+          </div>
+        </div>
+
+        <div class="buttons">
+          <button id="btn-start">Start</button>
+          <button id="btn-pause" disabled>Pause</button>
+          <button id="btn-stop" disabled>Stop</button>
+          <button id="btn-reset">Reset</button>
+        </div>
+
+        <div class="message" id="message"></div>
+      </div>
+
+      <!-- Todo Panel -->
+      <div class="todo-panel">
+        <div class="todo-header">
+          <div>
+            <p class="panel-title">To-Do</p>
+            <span class="todo-mode-label mode-focus" id="todo-mode-label">Focus</span>
+          </div>
+          <span class="todo-count" id="todo-count"></span>
+        </div>
+
+        <div class="todo-input-row">
+          <input class="todo-input" id="todo-input" type="text" placeholder="Add a task…" maxlength="200">
+          <button id="btn-add-todo">+</button>
+        </div>
+
+        <div class="todo-list" id="todo-list"></div>
+
+        <div class="todo-actions">
+          <button id="btn-clear-done">Clear completed</button>
+          <button id="btn-clear-all">Clear all</button>
+        </div>
+      </div>
+
+    </div><!-- /.layout -->
+
+    <!-- Session Log — full width, bottom -->
+    <div class="log-section">
+      <div class="log-header">
+        <span class="log-title">Session Log</span>
+        <button id="btn-clear-log">Clear log</button>
+      </div>
+      <div class="log-list" id="log-list"></div>
+    </div>
+
+  </div><!-- /.main-content -->
+
   <script>
-    const display   = document.getElementById('display');
-    const progress  = document.getElementById('progress');
-    const message   = document.getElementById('message');
-    const btnStart  = document.getElementById('btn-start');
-    const btnPause  = document.getElementById('btn-pause');
-    const btnReset  = document.getElementById('btn-reset');
-    const inputH    = document.getElementById('input-h');
-    const inputM    = document.getElementById('input-m');
-    const inputS    = document.getElementById('input-s');
+    // ── Timezone & clock ──────────────────────────────────────────────
+    const TIMEZONES = [
+      // ── UTC / Universal ──
+      { label: 'UTC (UTC+0)',                          value: 'UTC' },
+      // ── Americas ──
+      { label: 'Honolulu — Hawaii (UTC-10)',           value: 'Pacific/Honolulu' },
+      { label: 'Anchorage — Alaska (UTC-9)',           value: 'America/Anchorage' },
+      { label: 'Los Angeles — Pacific (UTC-8/-7)',     value: 'America/Los_Angeles' },
+      { label: 'Vancouver (UTC-8/-7)',                 value: 'America/Vancouver' },
+      { label: 'Tijuana (UTC-8/-7)',                   value: 'America/Tijuana' },
+      { label: 'Phoenix — Arizona (UTC-7)',            value: 'America/Phoenix' },
+      { label: 'Denver — Mountain (UTC-7/-6)',         value: 'America/Denver' },
+      { label: 'Chicago — Central (UTC-6/-5)',         value: 'America/Chicago' },
+      { label: 'Mexico City (UTC-6/-5)',               value: 'America/Mexico_City' },
+      { label: 'New York — Eastern (UTC-5/-4)',        value: 'America/New_York' },
+      { label: 'Toronto (UTC-5/-4)',                   value: 'America/Toronto' },
+      { label: 'Miami (UTC-5/-4)',                     value: 'America/New_York' },
+      { label: 'Bogotá — Colombia (UTC-5)',            value: 'America/Bogota' },
+      { label: 'Lima — Peru (UTC-5)',                  value: 'America/Lima' },
+      { label: 'Halifax — Atlantic (UTC-4/-3)',        value: 'America/Halifax' },
+      { label: 'Caracas — Venezuela (UTC-4)',          value: 'America/Caracas' },
+      { label: 'Santiago — Chile (UTC-4/-3)',          value: 'America/Santiago' },
+      { label: 'São Paulo — Brazil (UTC-3)',           value: 'America/Sao_Paulo' },
+      { label: 'Brasília (UTC-3)',                     value: 'America/Sao_Paulo' },
+      { label: 'Buenos Aires — Argentina (UTC-3)',     value: 'America/Argentina/Buenos_Aires' },
+      { label: 'Montevideo — Uruguay (UTC-3)',         value: 'America/Montevideo' },
+      { label: 'St. John\'s — Newfoundland (UTC-3:30)',value: 'America/St_Johns' },
+      // ── Atlantic / Europe ──
+      { label: 'Azores — Portugal (UTC-1)',            value: 'Atlantic/Azores' },
+      { label: 'Reykjavik — Iceland (UTC+0)',          value: 'Atlantic/Reykjavik' },
+      { label: 'London — UK (UTC+0/+1)',               value: 'Europe/London' },
+      { label: 'Dublin — Ireland (UTC+0/+1)',          value: 'Europe/Dublin' },
+      { label: 'Lisbon — Portugal (UTC+0/+1)',         value: 'Europe/Lisbon' },
+      { label: 'Paris — France (UTC+1/+2)',            value: 'Europe/Paris' },
+      { label: 'Berlin — Germany (UTC+1/+2)',          value: 'Europe/Berlin' },
+      { label: 'Amsterdam — Netherlands (UTC+1/+2)',   value: 'Europe/Amsterdam' },
+      { label: 'Brussels — Belgium (UTC+1/+2)',        value: 'Europe/Brussels' },
+      { label: 'Madrid — Spain (UTC+1/+2)',            value: 'Europe/Madrid' },
+      { label: 'Barcelona (UTC+1/+2)',                 value: 'Europe/Madrid' },
+      { label: 'Rome — Italy (UTC+1/+2)',              value: 'Europe/Rome' },
+      { label: 'Zurich — Switzerland (UTC+1/+2)',      value: 'Europe/Zurich' },
+      { label: 'Vienna — Austria (UTC+1/+2)',          value: 'Europe/Vienna' },
+      { label: 'Warsaw — Poland (UTC+1/+2)',           value: 'Europe/Warsaw' },
+      { label: 'Prague — Czech Republic (UTC+1/+2)',   value: 'Europe/Prague' },
+      { label: 'Stockholm — Sweden (UTC+1/+2)',        value: 'Europe/Stockholm' },
+      { label: 'Oslo — Norway (UTC+1/+2)',             value: 'Europe/Oslo' },
+      { label: 'Copenhagen — Denmark (UTC+1/+2)',      value: 'Europe/Copenhagen' },
+      { label: 'Helsinki — Finland (UTC+2/+3)',        value: 'Europe/Helsinki' },
+      { label: 'Athens — Greece (UTC+2/+3)',           value: 'Europe/Athens' },
+      { label: 'Bucharest — Romania (UTC+2/+3)',       value: 'Europe/Bucharest' },
+      { label: 'Kyiv — Ukraine (UTC+2/+3)',            value: 'Europe/Kyiv' },
+      { label: 'Istanbul — Turkey (UTC+3)',            value: 'Europe/Istanbul' },
+      { label: 'Moscow — Russia (UTC+3)',              value: 'Europe/Moscow' },
+      { label: 'St. Petersburg — Russia (UTC+3)',      value: 'Europe/Moscow' },
+      // ── Africa ──
+      { label: 'Accra — Ghana (UTC+0)',                value: 'Africa/Accra' },
+      { label: 'Casablanca — Morocco (UTC+0/+1)',      value: 'Africa/Casablanca' },
+      { label: 'Lagos — Nigeria (UTC+1)',              value: 'Africa/Lagos' },
+      { label: 'Nairobi — Kenya (UTC+3)',              value: 'Africa/Nairobi' },
+      { label: 'Cairo — Egypt (UTC+2)',                value: 'Africa/Cairo' },
+      { label: 'Johannesburg — South Africa (UTC+2)',  value: 'Africa/Johannesburg' },
+      // ── Middle East ──
+      { label: 'Jerusalem — Israel (UTC+2/+3)',        value: 'Asia/Jerusalem' },
+      { label: 'Beirut — Lebanon (UTC+2/+3)',          value: 'Asia/Beirut' },
+      { label: 'Amman — Jordan (UTC+2/+3)',            value: 'Asia/Amman' },
+      { label: 'Riyadh — Saudi Arabia (UTC+3)',        value: 'Asia/Riyadh' },
+      { label: 'Kuwait City (UTC+3)',                  value: 'Asia/Kuwait' },
+      { label: 'Doha — Qatar (UTC+3)',                 value: 'Asia/Qatar' },
+      { label: 'Baghdad — Iraq (UTC+3)',               value: 'Asia/Baghdad' },
+      { label: 'Tehran — Iran (UTC+3:30/+4:30)',       value: 'Asia/Tehran' },
+      { label: 'Dubai — UAE (UTC+4)',                  value: 'Asia/Dubai' },
+      { label: 'Abu Dhabi — UAE (UTC+4)',              value: 'Asia/Dubai' },
+      { label: 'Muscat — Oman (UTC+4)',                value: 'Asia/Muscat' },
+      { label: 'Baku — Azerbaijan (UTC+4)',            value: 'Asia/Baku' },
+      { label: 'Tbilisi — Georgia (UTC+4)',            value: 'Asia/Tbilisi' },
+      { label: 'Yerevan — Armenia (UTC+4)',            value: 'Asia/Yerevan' },
+      { label: 'Kabul — Afghanistan (UTC+4:30)',       value: 'Asia/Kabul' },
+      // ── South Asia ──
+      { label: 'Karachi — Pakistan (UTC+5)',           value: 'Asia/Karachi' },
+      { label: 'Islamabad — Pakistan (UTC+5)',         value: 'Asia/Karachi' },
+      { label: 'Lahore — Pakistan (UTC+5)',            value: 'Asia/Karachi' },
+      { label: 'Tashkent — Uzbekistan (UTC+5)',        value: 'Asia/Tashkent' },
+      { label: 'Yekaterinburg — Russia (UTC+5)',       value: 'Asia/Yekaterinburg' },
+      { label: 'Mumbai — India (UTC+5:30)',            value: 'Asia/Kolkata' },
+      { label: 'Delhi / New Delhi — India (UTC+5:30)', value: 'Asia/Kolkata' },
+      { label: 'Bangalore — India (UTC+5:30)',         value: 'Asia/Kolkata' },
+      { label: 'Chennai — India (UTC+5:30)',           value: 'Asia/Kolkata' },
+      { label: 'Kolkata — India (UTC+5:30)',           value: 'Asia/Kolkata' },
+      { label: 'Colombo — Sri Lanka (UTC+5:30)',       value: 'Asia/Colombo' },
+      { label: 'Kathmandu — Nepal (UTC+5:45)',         value: 'Asia/Kathmandu' },
+      { label: 'Dhaka — Bangladesh (UTC+6)',           value: 'Asia/Dhaka' },
+      { label: 'Chittagong — Bangladesh (UTC+6)',      value: 'Asia/Dhaka' },
+      { label: 'Almaty — Kazakhstan (UTC+6)',          value: 'Asia/Almaty' },
+      { label: 'Omsk — Russia (UTC+6)',                value: 'Asia/Omsk' },
+      { label: 'Yangon — Myanmar (UTC+6:30)',          value: 'Asia/Yangon' },
+      // ── Southeast Asia ──
+      { label: 'Bangkok — Thailand (UTC+7)',           value: 'Asia/Bangkok' },
+      { label: 'Hanoi — Vietnam (UTC+7)',              value: 'Asia/Ho_Chi_Minh' },
+      { label: 'Ho Chi Minh City — Vietnam (UTC+7)',   value: 'Asia/Ho_Chi_Minh' },
+      { label: 'Phnom Penh — Cambodia (UTC+7)',        value: 'Asia/Phnom_Penh' },
+      { label: 'Vientiane — Laos (UTC+7)',             value: 'Asia/Vientiane' },
+      { label: 'Jakarta — Indonesia WIB (UTC+7)',      value: 'Asia/Jakarta' },
+      { label: 'Surabaya — Indonesia WIB (UTC+7)',     value: 'Asia/Jakarta' },
+      { label: 'Medan — Indonesia WIB (UTC+7)',        value: 'Asia/Jakarta' },
+      { label: 'Novosibirsk — Russia (UTC+7)',         value: 'Asia/Novosibirsk' },
+      { label: 'Singapore (UTC+8)',                    value: 'Asia/Singapore' },
+      { label: 'Kuala Lumpur — Malaysia (UTC+8)',      value: 'Asia/Kuala_Lumpur' },
+      { label: 'Penang — Malaysia (UTC+8)',            value: 'Asia/Kuala_Lumpur' },
+      { label: 'Johor Bahru — Malaysia (UTC+8)',       value: 'Asia/Kuala_Lumpur' },
+      { label: 'Kota Kinabalu — Malaysia (UTC+8)',     value: 'Asia/Kuching' },
+      { label: 'Kuching — Malaysia (UTC+8)',           value: 'Asia/Kuching' },
+      { label: 'Manila — Philippines (UTC+8)',         value: 'Asia/Manila' },
+      { label: 'Cebu — Philippines (UTC+8)',           value: 'Asia/Manila' },
+      { label: 'Davao — Philippines (UTC+8)',          value: 'Asia/Manila' },
+      { label: 'Bali — Indonesia WITA (UTC+8)',        value: 'Asia/Makassar' },
+      { label: 'Makassar — Indonesia WITA (UTC+8)',    value: 'Asia/Makassar' },
+      { label: 'Brunei (UTC+8)',                       value: 'Asia/Brunei' },
+      { label: 'Jayapura — Indonesia WIT (UTC+9)',     value: 'Asia/Jayapura' },
+      // ── East Asia ──
+      { label: 'Beijing — China (UTC+8)',              value: 'Asia/Shanghai' },
+      { label: 'Shanghai — China (UTC+8)',             value: 'Asia/Shanghai' },
+      { label: 'Guangzhou — China (UTC+8)',            value: 'Asia/Shanghai' },
+      { label: 'Shenzhen — China (UTC+8)',             value: 'Asia/Shanghai' },
+      { label: 'Chengdu — China (UTC+8)',              value: 'Asia/Shanghai' },
+      { label: 'Hong Kong (UTC+8)',                    value: 'Asia/Hong_Kong' },
+      { label: 'Macau (UTC+8)',                        value: 'Asia/Macau' },
+      { label: 'Taipei — Taiwan (UTC+8)',              value: 'Asia/Taipei' },
+      { label: 'Ulaanbaatar — Mongolia (UTC+8)',       value: 'Asia/Ulaanbaatar' },
+      { label: 'Krasnoyarsk — Russia (UTC+7)',         value: 'Asia/Krasnoyarsk' },
+      { label: 'Tokyo — Japan (UTC+9)',                value: 'Asia/Tokyo' },
+      { label: 'Osaka — Japan (UTC+9)',                value: 'Asia/Tokyo' },
+      { label: 'Seoul — South Korea (UTC+9)',          value: 'Asia/Seoul' },
+      { label: 'Busan — South Korea (UTC+9)',          value: 'Asia/Seoul' },
+      { label: 'Pyongyang — North Korea (UTC+9)',      value: 'Asia/Pyongyang' },
+      { label: 'Yakutsk — Russia (UTC+9)',             value: 'Asia/Yakutsk' },
+      // ── Oceania / Pacific ──
+      { label: 'Darwin — Australia (UTC+9:30)',        value: 'Australia/Darwin' },
+      { label: 'Adelaide — Australia (UTC+9:30/+10:30)', value: 'Australia/Adelaide' },
+      { label: 'Perth — Australia (UTC+8)',            value: 'Australia/Perth' },
+      { label: 'Brisbane — Australia (UTC+10)',        value: 'Australia/Brisbane' },
+      { label: 'Sydney — Australia (UTC+10/+11)',      value: 'Australia/Sydney' },
+      { label: 'Melbourne — Australia (UTC+10/+11)',   value: 'Australia/Melbourne' },
+      { label: 'Hobart — Australia (UTC+10/+11)',      value: 'Australia/Hobart' },
+      { label: 'Port Moresby — Papua New Guinea (UTC+10)', value: 'Pacific/Port_Moresby' },
+      { label: 'Vladivostok — Russia (UTC+10)',        value: 'Asia/Vladivostok' },
+      { label: 'Noumea — New Caledonia (UTC+11)',      value: 'Pacific/Noumea' },
+      { label: 'Auckland — New Zealand (UTC+12/+13)',  value: 'Pacific/Auckland' },
+      { label: 'Wellington — New Zealand (UTC+12/+13)',value: 'Pacific/Auckland' },
+      { label: 'Suva — Fiji (UTC+12)',                 value: 'Pacific/Fiji' },
+      { label: "Nuku'alofa — Tonga (UTC+13)",          value: 'Pacific/Tongatapu' },
+      { label: 'Apia — Samoa (UTC+13)',                value: 'Pacific/Apia' },
+    ];
 
-    let totalSeconds  = 0;
-    let remaining     = 0;
-    let interval      = null;
-    let running       = false;
+    const tzSearch      = document.getElementById('tz-search');
+    const tzOptionsEl   = document.getElementById('tz-options');
+    const currentDateEl = document.getElementById('current-date');
+    const currentTimeEl = document.getElementById('current-time');
 
-    function pad(n) {
-      return String(n).padStart(2, '0');
+    const browserTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    let selectedTZ  = localStorage.getItem('pomodoro-tz') || '__auto__';
+
+    // Prepend the auto-detect sentinel at the very top
+    TIMEZONES.unshift({ label: '📍 Auto-detect my location', value: '__auto__' });
+
+    // If browser TZ isn't elsewhere in the list, add it just below auto-detect
+    const knownValues = new Set(TIMEZONES.map(t => t.value));
+    if (!knownValues.has(browserTZ)) {
+      TIMEZONES.splice(1, 0, { label: `${browserTZ} (detected)`, value: browserTZ });
     }
+
+    // Resolve __auto__ to the actual browser timezone for clock/formatting use
+    function resolvedTZ() {
+      return selectedTZ === '__auto__' ? browserTZ : selectedTZ;
+    }
+
+    let filteredTZs  = [...TIMEZONES];
+    let highlightIdx = -1;
+
+    function tzLabel(value) {
+      if (value === '__auto__') {
+        const detected = TIMEZONES.find(t => t.value === browserTZ && t.value !== '__auto__');
+        const city = detected ? detected.label.split('—')[0].split('(')[0].trim() : browserTZ;
+        return `📍 Auto-detect (${city})`;
+      }
+      const found = TIMEZONES.find(t => t.value === value);
+      return found ? found.label : value;
+    }
+
+    function renderTZOptions(query) {
+      const q = (query || '').trim().toLowerCase();
+      filteredTZs = q
+        ? TIMEZONES.filter(t => t.label.toLowerCase().includes(q) || t.value.toLowerCase().includes(q))
+        : [...TIMEZONES];
+
+      tzOptionsEl.innerHTML = '';
+      if (filteredTZs.length === 0) {
+        tzOptionsEl.innerHTML = '<div class="tz-no-results">No results</div>';
+        return;
+      }
+      filteredTZs.forEach((tz, i) => {
+        const div = document.createElement('div');
+        const isSelected = tz.value === selectedTZ ||
+          (selectedTZ === '__auto__' && tz.value === '__auto__');
+        div.className = 'tz-option' + (isSelected ? ' selected' : '');
+        div.textContent = tz.value === '__auto__' ? tzLabel('__auto__') : tz.label;
+        div.addEventListener('mousedown', e => { e.preventDefault(); selectTZ(tz.value); });
+        tzOptionsEl.appendChild(div);
+      });
+      highlightIdx = -1;
+    }
+
+    function applyHighlight() {
+      tzOptionsEl.querySelectorAll('.tz-option').forEach((el, i) => {
+        el.classList.toggle('highlighted', i === highlightIdx);
+        if (i === highlightIdx) el.scrollIntoView({ block: 'nearest' });
+      });
+    }
+
+    function openTZDropdown() {
+      tzSearch.value = '';
+      renderTZOptions('');
+      tzOptionsEl.classList.add('open');
+    }
+
+    function closeTZDropdown() {
+      tzOptionsEl.classList.remove('open');
+      tzSearch.value = tzLabel(selectedTZ);
+      highlightIdx = -1;
+    }
+
+    function selectTZ(value) {
+      selectedTZ = value;
+      localStorage.setItem('pomodoro-tz', value);
+      closeTZDropdown();
+      updateClock();
+    }
+
+    tzSearch.addEventListener('focus', openTZDropdown);
+    tzSearch.addEventListener('blur', () => { setTimeout(closeTZDropdown, 150); });
+
+    tzSearch.addEventListener('input', () => {
+      renderTZOptions(tzSearch.value);
+      tzOptionsEl.classList.add('open');
+    });
+
+    tzSearch.addEventListener('keydown', e => {
+      const opts = tzOptionsEl.querySelectorAll('.tz-option');
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        highlightIdx = Math.min(highlightIdx + 1, opts.length - 1);
+        applyHighlight();
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        highlightIdx = Math.max(highlightIdx - 1, 0);
+        applyHighlight();
+      } else if (e.key === 'Enter' && highlightIdx >= 0 && filteredTZs[highlightIdx]) {
+        e.preventDefault();
+        selectTZ(filteredTZs[highlightIdx].value);
+      } else if (e.key === 'Escape') {
+        closeTZDropdown();
+        tzSearch.blur();
+      }
+    });
+
+    // Set initial label
+    tzSearch.value = tzLabel(selectedTZ);
+
+    function updateClock() {
+      const now = new Date();
+      const tz  = resolvedTZ();
+      currentDateEl.textContent = new Intl.DateTimeFormat('en-GB', {
+        timeZone: tz,
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+      }).format(now);
+      currentTimeEl.textContent = new Intl.DateTimeFormat('en-GB', {
+        timeZone: tz,
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+      }).format(now);
+    }
+
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    // ── Pomodoro mode config ──────────────────────────────────────────
+    const MODES = {
+      focus: { h: 0, m: 25, s: 0 },
+      short: { h: 0, m: 5,  s: 0 },
+      long:  { h: 0, m: 15, s: 0 },
+    };
+
+    let currentMode  = 'focus';
+    let sessionCount = 0;
+
+    // ── Timer state ───────────────────────────────────────────────────
+    const display     = document.getElementById('display');
+    const progress    = document.getElementById('progress');
+    const message     = document.getElementById('message');
+    const btnStart    = document.getElementById('btn-start');
+    const btnPause    = document.getElementById('btn-pause');
+    const btnStop     = document.getElementById('btn-stop');
+    const btnReset    = document.getElementById('btn-reset');
+    const inputH      = document.getElementById('input-h');
+    const inputM      = document.getElementById('input-m');
+    const inputS      = document.getElementById('input-s');
+    const sessionDots = document.getElementById('session-dots');
+
+    let totalSeconds = 0;
+    let remaining    = 0;
+    let interval     = null;
+    let running      = false;
+    let timerStarted   = false;
+    let sessionEvents  = [];
+    let pauseStartTime = null;
+    let breakAvailable = true; // false only while a focus session is actively running
+
+    // ── Helpers ───────────────────────────────────────────────────────
+    function pad(n) { return String(n).padStart(2, '0'); }
 
     function formatTime(secs) {
       const h = Math.floor(secs / 3600);
@@ -255,11 +1064,33 @@
       return `${pad(h)}:${pad(m)}:${pad(s)}`;
     }
 
+    function formatClock(date) {
+      return new Intl.DateTimeFormat('en-GB', {
+        timeZone: resolvedTZ(),
+        hour: '2-digit', minute: '2-digit', hour12: false,
+      }).format(date);
+    }
+
+    function formatElapsed(secs) {
+      if (secs <= 0) return '00:00:00';
+      return formatTime(secs);
+    }
+
+    function formatDuration(secs) {
+      if (secs < 60) return `${secs}s`;
+      const m = Math.floor(secs / 60);
+      const s = secs % 60;
+      if (m < 60) return s === 0 ? `${m}m` : `${m}m ${s}s`;
+      const h = Math.floor(m / 60);
+      const rm = m % 60;
+      return rm === 0 ? `${h}h` : `${h}h ${rm}m`;
+    }
+
     function setColorState(secs) {
       const pct = totalSeconds > 0 ? secs / totalSeconds : 1;
       display.className  = 'display';
       progress.className = 'progress-fill';
-      if (secs === 0 && running === false && totalSeconds > 0) {
+      if (secs === 0 && !running && totalSeconds > 0) {
         display.classList.add('finished');
         progress.className = 'progress-fill danger';
       } else if (pct <= 0.1) {
@@ -285,6 +1116,73 @@
       return h * 3600 + m * 60 + s;
     }
 
+    function setInputsDisabled(disabled) {
+      inputH.disabled = disabled;
+      inputM.disabled = disabled;
+      inputS.disabled = disabled;
+    }
+
+    // ── Mode tabs ─────────────────────────────────────────────────────
+    document.querySelectorAll('.mode-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        if (running) return;
+        const mode = tab.dataset.mode;
+        if ((mode === 'short' || mode === 'long') && !breakAvailable) return;
+        selectMode(mode);
+      });
+    });
+
+    function updateTabStates() {
+      document.querySelectorAll('.mode-tab').forEach(tab => {
+        const mode = tab.dataset.mode;
+        if (mode === 'short' || mode === 'long') {
+          tab.classList.toggle('break-locked', !breakAvailable);
+        }
+      });
+    }
+
+    const MODE_LABELS = { focus: 'Focus', short: 'Short Break', long: 'Long Break' };
+
+    function selectMode(mode) {
+      saveTodos(); // save current mode's list before switching
+
+      // If the user is switching from a paused focus session to a break,
+      // finalize the focus log entry now so the break can be grouped under it.
+      if (currentMode === 'focus' && (mode === 'short' || mode === 'long') && timerStarted) {
+        const elapsed = totalSeconds - remaining;
+        addLogEntry({ mode: 'focus', status: 'stopped', elapsed, events: [...sessionEvents] });
+        sessionEvents = [];
+        timerStarted = false;
+      }
+
+      currentMode = mode;
+      document.querySelectorAll('.mode-tab').forEach(t =>
+        t.classList.toggle('active', t.dataset.mode === mode)
+      );
+      const cfg = MODES[mode];
+      inputH.value = cfg.h;
+      inputM.value = cfg.m;
+      inputS.value = cfg.s;
+
+      todos = loadTodos();
+      renderTodos();
+
+      const lbl = document.getElementById('todo-mode-label');
+      lbl.textContent = MODE_LABELS[mode] || mode;
+      lbl.className = `todo-mode-label mode-${mode}`;
+
+      reset();
+    }
+
+    // ── Session dots ──────────────────────────────────────────────────
+    function renderSessionDots() {
+      const dots = sessionDots.querySelectorAll('.dot');
+      dots.forEach((dot, i) => {
+        dot.classList.toggle('filled', i < (sessionCount % 4 || (sessionCount > 0 && sessionCount % 4 === 0 ? 4 : 0)));
+      });
+    }
+
+    // ── Timer controls ────────────────────────────────────────────────
     function start() {
       if (running) return;
 
@@ -298,10 +1196,27 @@
         return;
       }
 
+      if (!timerStarted) {
+        sessionEvents = [];
+        if (currentMode === 'focus') { breakAvailable = false; updateTabStates(); }
+      } else if (pauseStartTime !== null) {
+        // Resuming from a pause — log how long it was paused
+        const pauseSecs = Math.round((Date.now() - pauseStartTime) / 1000);
+        sessionEvents.push({
+          type: 'resumed',
+          text: `Resumed — paused for ${formatDuration(pauseSecs)}`,
+          time: formatTime(remaining),
+        });
+        pauseStartTime = null;
+      }
+
       message.textContent = '';
       running = true;
+      timerStarted = true;
       btnStart.disabled = true;
       btnPause.disabled = false;
+      btnPause.textContent = 'Pause';
+      btnStop.disabled  = false;
       setInputsDisabled(true);
 
       interval = setInterval(() => {
@@ -311,13 +1226,36 @@
         if (remaining <= 0) {
           clearInterval(interval);
           running = false;
+          timerStarted = false;
           btnStart.disabled = false;
           btnPause.disabled = true;
           btnPause.textContent = 'Pause';
-          message.textContent = "Time's up!";
-          playBeep();
+          btnStop.disabled = true;
+          setInputsDisabled(false);
+          onTimerFinished('completed');
         }
       }, 1000);
+    }
+
+    function onTimerFinished(status) {
+      if (status === 'completed') playBeep();
+      const elapsed = totalSeconds - remaining;
+
+      if (currentMode === 'focus') {
+        if (status === 'completed') {
+          sessionCount++;
+          renderSessionDots();
+          message.textContent = 'Focus done! Take a break.';
+        } else {
+          message.textContent = 'Session stopped.';
+        }
+        breakAvailable = true;
+        updateTabStates();
+        addLogEntry({ mode: 'focus', status, elapsed, events: [...sessionEvents] });
+      } else {
+        message.textContent = status === 'completed' ? 'Break over! Time to focus.' : 'Break stopped.';
+        addLogEntry({ mode: currentMode, status, elapsed, events: [...sessionEvents] });
+      }
     }
 
     function pause() {
@@ -326,6 +1264,9 @@
       running = false;
       btnStart.disabled = false;
       btnPause.textContent = 'Resume';
+      pauseStartTime = Date.now();
+      sessionEvents.push({ type: 'paused', text: 'Timer paused', time: formatTime(remaining) });
+      if (currentMode === 'focus') { breakAvailable = true; updateTabStates(); }
     }
 
     function resume() {
@@ -333,9 +1274,32 @@
       start();
     }
 
+    function stop() {
+      clearInterval(interval);
+      running = false;
+      timerStarted = false;
+      pauseStartTime = null;
+      btnStart.disabled = false;
+      btnPause.disabled = true;
+      btnPause.textContent = 'Pause';
+      btnStop.disabled = true;
+      setInputsDisabled(false);
+      onTimerFinished('stopped');
+      remaining = 0;
+      totalSeconds = 0;
+      display.className = 'display';
+      progress.style.width = '100%';
+      progress.className = 'progress-fill';
+      updateDisplay();
+    }
+
     function reset() {
       clearInterval(interval);
       running = false;
+      timerStarted = false;
+      pauseStartTime = null;
+      breakAvailable = true;
+      updateTabStates();
       remaining = 0;
       totalSeconds = 0;
       display.textContent = '00:00:00';
@@ -346,13 +1310,9 @@
       btnStart.disabled = false;
       btnPause.disabled = true;
       btnPause.textContent = 'Pause';
+      btnStop.disabled = true;
       setInputsDisabled(false);
-    }
-
-    function setInputsDisabled(disabled) {
-      inputH.disabled = disabled;
-      inputM.disabled = disabled;
-      inputS.disabled = disabled;
+      updateDisplay();
     }
 
     function playBeep() {
@@ -373,19 +1333,11 @@
       } catch (_) {}
     }
 
-    btnStart.addEventListener('click', () => {
-      if (!running && remaining === 0) start();
-      else start();
-    });
-
-    btnPause.addEventListener('click', () => {
-      if (running) pause();
-      else resume();
-    });
-
+    btnStart.addEventListener('click', start);
+    btnPause.addEventListener('click', () => { running ? pause() : resume(); });
+    btnStop.addEventListener('click', stop);
     btnReset.addEventListener('click', reset);
 
-    // Clamp inputs on blur
     [inputM, inputS].forEach(input => {
       input.addEventListener('blur', () => {
         const val = parseInt(input.value) || 0;
@@ -393,8 +1345,296 @@
       });
     });
 
-    // Initialize display
-    updateDisplay();
+    // ── To-Do List ────────────────────────────────────────────────────
+    const todoInput    = document.getElementById('todo-input');
+    const todoListEl   = document.getElementById('todo-list');
+    const todoCount    = document.getElementById('todo-count');
+    const btnAddTodo   = document.getElementById('btn-add-todo');
+    const btnClearDone = document.getElementById('btn-clear-done');
+    const btnClearAll  = document.getElementById('btn-clear-all');
+
+    // Migrate old single-list key to per-mode key
+    const _oldTodos = localStorage.getItem('pomodoro-todos');
+    if (_oldTodos !== null) {
+      localStorage.setItem('pomodoro-todos-focus', _oldTodos);
+      localStorage.removeItem('pomodoro-todos');
+    }
+
+    let todos = loadTodos();
+
+    function loadTodos() {
+      try { return JSON.parse(localStorage.getItem(`pomodoro-todos-${currentMode}`) || '[]'); }
+      catch { return []; }
+    }
+
+    function saveTodos() {
+      localStorage.setItem(`pomodoro-todos-${currentMode}`, JSON.stringify(todos));
+    }
+
+    function renderTodos() {
+      todoListEl.innerHTML = '';
+
+      if (todos.length === 0) {
+        todoListEl.innerHTML = '<p class="todo-empty">No tasks yet — add one above.</p>';
+        todoCount.textContent = '';
+        return;
+      }
+
+      const done = todos.filter(t => t.done).length;
+      todoCount.textContent = `${done}/${todos.length} done`;
+
+      todos.forEach((todo, idx) => {
+        const item = document.createElement('div');
+        item.className = 'todo-item' + (todo.done ? ' done' : '');
+
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.className = 'todo-checkbox';
+        cb.checked = todo.done;
+        cb.addEventListener('change', () => {
+          todos[idx].done = cb.checked;
+          if (cb.checked) {
+            todos[idx].completedAt = formatTime(remaining);
+            if (timerStarted) {
+              sessionEvents.push({ type: 'completed', text: todos[idx].text, time: formatTime(remaining) });
+            }
+          } else {
+            delete todos[idx].completedAt;
+          }
+          saveTodos();
+          renderTodos();
+        });
+
+        const text = document.createElement('span');
+        text.className = 'todo-text';
+        text.textContent = todo.text;
+
+        const del = document.createElement('button');
+        del.className = 'todo-delete';
+        del.textContent = '×';
+        del.title = 'Delete task';
+        del.addEventListener('click', () => {
+          if (timerStarted) {
+            sessionEvents.push({ type: 'removed', text: todos[idx].text, time: formatTime(remaining) });
+          }
+          todos.splice(idx, 1);
+          saveTodos();
+          renderTodos();
+        });
+
+        item.append(cb, text, del);
+        todoListEl.appendChild(item);
+      });
+    }
+
+    function addTodo() {
+      const text = todoInput.value.trim();
+      if (!text) return;
+      todos.push({ id: Date.now() + Math.random(), text, done: false });
+      if (timerStarted) {
+        sessionEvents.push({ type: 'added', text, time: formatTime(remaining) });
+      }
+      saveTodos();
+      renderTodos();
+      todoInput.value = '';
+      todoInput.focus();
+    }
+
+    btnAddTodo.addEventListener('click', addTodo);
+    todoInput.addEventListener('keydown', e => { if (e.key === 'Enter') addTodo(); });
+
+    btnClearDone.addEventListener('click', () => {
+      const count = todos.filter(t => t.done).length;
+      if (count === 0) return;
+      if (timerStarted) {
+        sessionEvents.push({ type: 'cleared', text: `Cleared ${count} completed task${count !== 1 ? 's' : ''}`, time: formatTime(remaining) });
+      }
+      todos = todos.filter(t => !t.done);
+      saveTodos();
+      renderTodos();
+    });
+
+    btnClearAll.addEventListener('click', () => {
+      if (todos.length === 0) return;
+      if (timerStarted) {
+        sessionEvents.push({ type: 'cleared', text: `Cleared all ${todos.length} task${todos.length !== 1 ? 's' : ''}`, time: formatTime(remaining) });
+      }
+      todos = [];
+      saveTodos();
+      renderTodos();
+    });
+
+    // ── Session Log ───────────────────────────────────────────────────
+    const logListEl   = document.getElementById('log-list');
+    const btnClearLog = document.getElementById('btn-clear-log');
+
+    let sessionLog = loadLog();
+
+    function loadLog() {
+      try { return JSON.parse(localStorage.getItem('pomodoro-log') || '[]'); }
+      catch { return []; }
+    }
+
+    function saveLog() {
+      localStorage.setItem('pomodoro-log', JSON.stringify(sessionLog));
+    }
+
+    function addLogEntry({ mode, status, elapsed, events }) {
+      const badgeMode  = status === 'stopped' ? 'stopped' : mode;
+      const label      = status === 'stopped'
+        ? (mode === 'focus' ? 'Stopped' : `${MODE_LABELS[mode]} (Stopped)`)
+        : MODE_LABELS[mode] || mode;
+
+      if (mode === 'focus') {
+        sessionLog.unshift({
+          n: sessionCount, mode: badgeMode, label, baseMode: mode,
+          time: formatClock(new Date()), status, elapsed,
+          events: events || [], breaks: [],
+        });
+      } else {
+        const breakEntry = {
+          mode: badgeMode, label, baseMode: mode,
+          time: formatClock(new Date()), status, elapsed,
+          events: events || [],
+        };
+        if (sessionLog.length > 0) {
+          if (!sessionLog[0].breaks) sessionLog[0].breaks = [];
+          sessionLog[0].breaks.push(breakEntry);
+        } else {
+          // No focus session yet — standalone break entry
+          sessionLog.unshift({
+            n: 0, mode: badgeMode, label, baseMode: mode,
+            time: formatClock(new Date()), status, elapsed,
+            events: events || [], breaks: [],
+          });
+        }
+      }
+      saveLog();
+      renderLog();
+    }
+
+    function renderLog() {
+      logListEl.innerHTML = '';
+
+      if (sessionLog.length === 0) {
+        logListEl.innerHTML = '<p class="log-empty">No sessions yet.</p>';
+        return;
+      }
+
+      const icons = { added: '+', completed: '✓', removed: '✗', cleared: '⊘', paused: '‖', resumed: '▸' };
+
+      function buildEventList(events) {
+        if (events && events.length > 0) {
+          const ul = document.createElement('ul');
+          ul.className = 'log-event-list';
+          events.forEach(ev => {
+            const li = document.createElement('li');
+            li.className = `log-event-item ev-${ev.type}`;
+            const icon = document.createElement('span');
+            icon.className = 'log-event-icon';
+            icon.textContent = icons[ev.type] || '·';
+            const name = document.createElement('span');
+            name.className = 'log-event-name';
+            name.textContent = ev.text;
+            const evTime = document.createElement('span');
+            evTime.className = 'log-event-time';
+            evTime.textContent = ev.time;
+            li.append(icon, name, evTime);
+            ul.appendChild(li);
+          });
+          return ul;
+        }
+        const none = document.createElement('p');
+        none.className = 'log-no-activity';
+        none.textContent = 'No activity';
+        return none;
+      }
+
+      sessionLog.forEach(entry => {
+        const el = document.createElement('div');
+        el.className = 'log-entry';
+
+        // ── Focus header ──
+        const header = document.createElement('div');
+        header.className = 'log-entry-header';
+
+        const title = document.createElement('span');
+        title.className = 'log-entry-title';
+        const isFocusBased = entry.baseMode === 'focus' || entry.mode === 'focus';
+        title.textContent = isFocusBased ? `Session ${entry.n}` : entry.label;
+
+        const badge = document.createElement('span');
+        badge.className = `log-badge ${entry.mode}`;
+        badge.textContent = entry.label;
+        title.appendChild(badge);
+
+        const wallTime = document.createElement('span');
+        wallTime.className = 'log-entry-time';
+        wallTime.textContent = entry.time;
+
+        header.append(title, wallTime);
+        el.appendChild(header);
+
+        if (entry.elapsed != null) {
+          const elapsed = document.createElement('p');
+          elapsed.className = 'log-elapsed';
+          elapsed.textContent = `Time spent: ${formatElapsed(entry.elapsed)}`;
+          el.appendChild(elapsed);
+        }
+
+        el.appendChild(buildEventList(entry.events));
+
+        // ── Break sub-sections ──
+        (entry.breaks || []).forEach(brk => {
+          const section = document.createElement('div');
+          section.className = 'log-break-section';
+
+          const bHeader = document.createElement('div');
+          bHeader.className = 'log-break-header';
+
+          const bTitle = document.createElement('span');
+          const bBadge = document.createElement('span');
+          bBadge.className = `log-badge ${brk.mode}`;
+          bBadge.textContent = brk.label;
+          bTitle.appendChild(bBadge);
+
+          const bTime = document.createElement('span');
+          bTime.className = 'log-entry-time';
+          bTime.textContent = brk.time;
+
+          bHeader.append(bTitle, bTime);
+          section.appendChild(bHeader);
+
+          if (brk.elapsed != null) {
+            const bElapsed = document.createElement('p');
+            bElapsed.className = 'log-elapsed';
+            bElapsed.textContent = `Time spent: ${formatElapsed(brk.elapsed)}`;
+            section.appendChild(bElapsed);
+          }
+
+          section.appendChild(buildEventList(brk.events));
+          el.appendChild(section);
+        });
+
+        logListEl.appendChild(el);
+      });
+    }
+
+    btnClearLog.addEventListener('click', () => {
+      if (timerStarted) {
+        sessionEvents.push({ type: 'cleared', text: 'Log cleared', time: formatTime(remaining) });
+      }
+      sessionLog = [];
+      saveLog();
+      renderLog();
+    });
+
+    // ── Init ──────────────────────────────────────────────────────────
+    selectMode('focus');
+    updateTabStates();
+    renderSessionDots();
+    renderTodos();
+    renderLog();
   </script>
 </body>
 </html>
